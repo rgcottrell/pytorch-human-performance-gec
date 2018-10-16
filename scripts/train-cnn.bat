@@ -1,0 +1,21 @@
+python ..\OpenNMT-py\train.py^
+    -data ..\models\lang8^
+    -share_embeddings^
+    -position_encoding^
+    -bridge^
+    -encoder_type cnn^
+    -decoder_type cnn^
+    -enc_layers 7^
+    -dec_layers 7^
+    -rnn_size 1024^
+    -rnn_type LSTM^
+    -gpu_ranks 0^
+    -train_steps 100000^
+    -optim sgd^
+    -dropout 0.2^
+    -learning_rate 0.25^
+    -learning_rate_decay 0.1^
+    -batch_size 8^
+    -accum_count 8^
+    -valid_batch_size 4^
+    -valid_steps 5000
