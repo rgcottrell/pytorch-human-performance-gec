@@ -4,10 +4,22 @@ A PyTorch implementation of "Reaching Human-level Performance in Automatic Gramm
 
 ## Initialize Submodules
 
-After checking out the repository, be sure to initialize the OpenNMT-py repository:
+After checking out the repository, be sure to initialize the included git submodules:
 
 ```sh
 git submodule update --init --recursive
+```
+
+## Install Required Dependencies
+
+This project requires the use of `PyTorch`, which can be installed by following the directions on its [project page](https://pytorch.org)
+
+This project also uses the `fairseq` NLP library, which is included as a submodule in this repository. To prepare the library for use, make sure that it is installed along with its dependencies.
+
+```sh
+cd fairseq
+pip install -r requirements.txt
+python setup.py build develop
 ```
 
 ## Preparing Data
@@ -46,16 +58,4 @@ After the sentences have been translated, the source and target sentence may be 
 
 ```sh
 python compare.py
-```
-
-## Patching OpenNMT-py
-
-If `preprocess.py` fails with a TypeError, then you may need to patch OpenNMT-py.
-
-Update `OpenNMT-py\onmt\inputters\dataset_base.py` with the following code:
-
-```python
-def __reduce_ex__(self, proto):
-    "This is a hack. Something is broken with torch pickle."
-    return super(DatasetBase, self).__reduce_ex__(proto)
 ```
