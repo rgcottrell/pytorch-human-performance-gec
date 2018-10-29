@@ -22,7 +22,9 @@ pip install -r requirements.txt
 python setup.py build develop
 ```
 
-## Preparing Data
+## OpenNMT Scripts (Legacy)
+
+### Preparing Data
 
 The first step is to prepare the source and target pairs of training and validation data. To split the Lang-8 learner data training set, use the following command:
 
@@ -36,7 +38,7 @@ Once the data has been extracted from the dataset, use OpenNMT to prepare the tr
 preprocess-lang8.bat
 ```
 
-## Train the Model
+### Train the Model
 
 To train the error-correcting model, run the following command:
 
@@ -46,7 +48,7 @@ train.bat
 
 Note that this script may need to be adjusted based on the GPU and memory resources available for training.
 
-## Testing the Model
+### Testing the Model
 
 To test the model, run the following command to try to correct a test list of sentences:
 
@@ -59,3 +61,19 @@ After the sentences have been translated, the source and target sentence may be 
 ```sh
 python compare.py
 ```
+
+### Patching OpenNMT-py Environment
+
+If `preprocess.py` fails with a TypeError, then you may need to patch OpenNMT-py.
+
+Update `OpenNMT-py\onmt\inputters\dataset_base.py` with the following code:
+
+```python
+def __reduce_ex__(self, proto):
+    "This is a hack. Something is broken with torch pickle."
+    return super(DatasetBase, self).__reduce_ex__(proto)
+```
+
+If `TypeError: __init__() got an unexpected keyword argument 'dtype'` occurs, `pytorch/text` installed by pip may be out of date. Update it using `pip install git+https://github.com/pytorch/text`
+
+If `RuntimeError: CuDNN error: CUDNN_STATUS_SUCCESS` occurs during training, try install pytorch with CUDA 9.2 using conda instead of using default CUDA 9.0.
