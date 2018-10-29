@@ -1,5 +1,6 @@
 python ..\OpenNMT-py\train.py^
-    -data ..\models\lang8^
+    -data ..\opennmt\data\lang8^
+    -save_model ..\opennmt\models\lang8^
     -encoder_type brnn^
     -decoder_type rnn^
     -enc_layers 2^

@@ -24,12 +24,20 @@ python setup.py build develop
 
 ## OpenNMT Scripts (Legacy)
 
+All OpenNMT scripts have been grouped under `opennmt-scripts` folder.
+
 ### Preparing Data
 
-The first step is to prepare the source and target pairs of training and validation data. To split the Lang-8 learner data training set, use the following command:
+The first step is to prepare the source and target pairs of training and validation data. Extract original `lang-8-en-1.0.zip` under `corpus` folder. Then create another folder `lang-8-opennmt` under `corpus` folder to store re-formatted corpus.
+
+To split the Lang-8 learner data training set, use the following command:
 
 ```sh
 python transform-lang8.py -src_dir <dataset-src> -out_dir <corpus-dir>
+```
+e.g.
+```sh
+python transform-lang8.py -src_dir ../corpus/lang-8-en-1.0 -out_dir ../corpus/lang-8-opennmt
 ```
 
 Once the data has been extracted from the dataset, use OpenNMT to prepare the training and validation data and create the vocabulary:

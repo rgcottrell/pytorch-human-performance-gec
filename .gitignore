@@ -4,7 +4,9 @@
 # Data directories
 checkpoints/
 corpus/
-data-bin
+data-bin/
+opennmt/
+test/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

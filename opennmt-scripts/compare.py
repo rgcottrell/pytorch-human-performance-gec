@@ -3,7 +3,7 @@
 import argparse
 
 def main(opt):
-    with open('translate.txt', 'r') as source_file, open('pred.txt', 'r') as pred_file:
+    with open('../test/translate.txt', 'r') as source_file, open('../test/pred.txt', 'r') as pred_file:
         for source, target in zip(source_file, pred_file):
             print("S: {}\nP: {}\n".format(source.strip(), target.strip()))
 

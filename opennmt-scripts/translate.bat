@@ -1,5 +1,5 @@
 python ..\OpenNMT-py\translate.py^
-    -model model_step_60000.pt^
+    -model ..\opennmt\models\lang8_step_50000.pt^
     -batch_size 1^
     -beam 5^
     -replace_unk^
