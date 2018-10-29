@@ -1,3 +1,6 @@
+[submodule "OpenNMT-py"]
+	path = OpenNMT-py
+	url = https://github.com/OpenNMT/OpenNMT-py.git
 [submodule "fairseq"]
 	path = fairseq
 	url = https://github.com/pytorch/fairseq.git
