@@ -90,7 +90,7 @@ If `RuntimeError: CuDNN error: CUDNN_STATUS_SUCCESS` occurs during training, try
 
 All fairseq scripts have been grouped under `fairseq-scripts` folder.
 
-## Preparing Data
+### Preparing Data
 
 The first step is to prepare the source and target pairs of training and validation data. Extract original `lang-8-en-1.0.zip` under `corpus` folder. Then create another folder `lang-8-fairseq` under `corpus` folder to store re-formatted corpus.
 
@@ -135,3 +135,5 @@ translate-lang8.bat
 If error `AttributeError: function 'bleu_zero_init' not found` occurs on Windows, modify functions to have `__declspec(dllexport)` then build again. See [Issue 292](https://github.com/pytorch/fairseq/issues/292)
 
 If error `UnicodeDecodeError: 'charmap' codec can't decode byte` error occurs, modify `fairseq/tokenizer.py` to include `, encoding='utf8'` for all `open` functions.
+
+When trying built-in example from `fairseq/examples/translation/prepare-[dataset].sh`, scripts may need to change .py path from `$BPEROOT/[script].py` to `$BPEROOT/subword_nmt/[script].py`.
