@@ -85,3 +85,53 @@ def __reduce_ex__(self, proto):
 If `TypeError: __init__() got an unexpected keyword argument 'dtype'` occurs, `pytorch/text` installed by pip may be out of date. Update it using `pip install git+https://github.com/pytorch/text`
 
 If `RuntimeError: CuDNN error: CUDNN_STATUS_SUCCESS` occurs during training, try install pytorch with CUDA 9.2 using conda instead of using default CUDA 9.0.
+
+## fairseq Scripts
+
+All fairseq scripts have been grouped under `fairseq-scripts` folder.
+
+## Preparing Data
+
+The first step is to prepare the source and target pairs of training and validation data. Extract original `lang-8-en-1.0.zip` under `corpus` folder. Then create another folder `lang-8-fairseq` under `corpus` folder to store re-formatted corpus.
+
+To split the Lang-8 learner data training set, use the following command:
+
+```sh
+python transform-lang8.py -src_dir <dataset-src> -out_dir <corpus-dir>
+```
+e.g.
+```sh
+python transform-lang8.py -src_dir ../corpus/lang-8-en-1.0 -out_dir ../corpus/lang-8-fairseq
+```
+
+Once the data has been extracted from the dataset, use fairseq to prepare the training and validation data and create the vocabulary:
+
+```sh
+preprocess-lang8.bat
+```
+
+### Train the Model
+
+TODO: this model is an out-of-box LSTM model. Not the model used in the paper.
+
+To train the error-correcting model, run the following command:
+
+```sh
+train-lang8.bat
+```
+
+Note that this script may need to be adjusted based on the GPU and memory resources available for training.
+
+### Testing the Model
+
+To test the model, run the following command to try to correct a test list of sentences:
+
+```sh
+translate-lang8.bat
+```
+
+### Patching fairseq Environment
+
+If error `AttributeError: function 'bleu_zero_init' not found` occurs on Windows, modify functions to have `__declspec(dllexport)` then build again. See [Issue 292](https://github.com/pytorch/fairseq/issues/292)
+
+If error `UnicodeDecodeError: 'charmap' codec can't decode byte` error occurs, modify `fairseq/tokenizer.py` to include `, encoding='utf8'` for all `open` functions.
