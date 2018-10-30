@@ -5,7 +5,8 @@
 checkpoints/
 corpus/
 data-bin/
-opennmt/
+opennmt/data/
+opennmt/models/
 test/
 
 # Byte-compiled / optimized / DLL files
