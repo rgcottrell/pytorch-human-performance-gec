@@ -112,7 +112,7 @@ preprocess-lang8.bat
 
 ### Train the Model
 
-TODO: this model is an out-of-box LSTM model. Not the model used in the paper.
+TODO: the training is using an out-of-box cross entropy loss function. A fluency score loss function used in the paper needs to be implemented.
 
 To train the error-correcting model, run the following command:
 
