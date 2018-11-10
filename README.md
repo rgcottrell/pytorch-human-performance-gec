@@ -112,12 +112,10 @@ preprocess-lang8.bat
 
 ### Train the Model
 
-TODO: the training is using an out-of-box cross entropy loss function. A fluency score loss function used in the paper needs to be implemented.
-
 To train the error-correcting model, run the following command:
 
 ```sh
-train-lang8.bat
+train-lang8-cnn.bat
 ```
 
 Note that this script may need to be adjusted based on the GPU and memory resources available for training.
@@ -127,7 +125,7 @@ Note that this script may need to be adjusted based on the GPU and memory resour
 To test the model, run the following command to try to correct a test list of sentences:
 
 ```sh
-translate-lang8.bat
+translate-lang8-cnn.bat
 ```
 
 ### Patching fairseq Environment
