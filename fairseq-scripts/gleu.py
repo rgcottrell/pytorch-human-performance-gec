@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 (Note: This script computes sentence-level GLEU score.)
 
@@ -44,6 +43,12 @@ class GLEU:
                               for n in range(1, self.order + 1)]
                              for line in open(spath)]
 
+    def load_text_sources(self, lines):
+        """load n-grams for all source sentences"""
+        self.all_s_ngrams = [[self.get_ngram_counts(line.split(), n)
+                              for n in range(1, self.order + 1)]
+                             for line in lines]
+
     def load_references(self, rpaths):
         """load n-grams for all references"""
         self.refs = [[] for i in range(len(self.all_s_ngrams))]
@@ -54,9 +59,23 @@ class GLEU:
                 self.refs[i].append(line.split())
                 self.rlens[i].append(len(line.split()))
 
-        # count number of references each n-gram appear sin
-        self.all_rngrams_freq = [Counter() for i in range(self.order)]
+        self.compute_references()
 
+    def load_text_references(self, lines_list):
+        """load n-grams for all references"""
+        self.refs = [[] for i in range(len(self.all_s_ngrams))]
+        self.rlens = [[] for i in range(len(self.all_s_ngrams))]
+        self.num_refs = len(lines_list)
+        for lines in lines_list:
+            for i, line in enumerate(lines):
+                self.refs[i].append(line.split())
+                self.rlens[i].append(len(line.split()))
+
+        self.compute_references()
+
+    def compute_references(self):
+        """count number of references each n-gram appear sin"""
+        self.all_rngrams_freq = [Counter() for i in range(self.order)]
         self.all_r_ngrams = []
         for refset in self.refs:
             all_ngrams = []
@@ -134,9 +153,9 @@ class GLEU:
         mean = np.mean(scores)
         std = np.std(scores)
         ci = scipy.stats.norm.interval(0.95, loc=mean, scale=std)
-        return ['%f' % mean,
-                '%f' % std,
-                '(%.3f,%.3f)' % (ci[0], ci[1])]
+        return [mean,
+                std,
+                (ci[0], ci[1])]
 
     def run_iterations(self, num_iterations=500, n=4, source='source.text',
                        hypothesis='answer.txt',
@@ -144,8 +163,11 @@ class GLEU:
         """run specified number of iterations of GLEU, choosing a reference
         for each sentence at random"""
 
-        instream = sys.stdin if hypothesis == '-' else open(hypothesis)
-        hyp = [line.split() for line in instream]
+        if isinstance(hypothesis, list):
+            hyp = [line.split() for line in hypothesis]
+        else:
+            instream = sys.stdin if hypothesis == '-' else open(hypothesis)
+            hyp = [line.split() for line in instream]
 
         # first generate a random list of indices, using a different seed
         # for each iteration

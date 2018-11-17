@@ -16,6 +16,7 @@ from fairseq.meters import StopwatchMeter, TimeMeter
 from fairseq.sequence_generator import SequenceGenerator
 from fairseq.sequence_scorer import SequenceScorer
 
+from gleu import GLEU
 
 def main(args):
     assert args.path is not None, '--path required for generation!'
@@ -89,6 +90,11 @@ def main(args):
 
     # Generate and compute BLEU score
     scorer = bleu.Scorer(tgt_dict.pad(), tgt_dict.eos(), tgt_dict.unk())
+    # Save all sources, targets and hypothesis to compute GLEU score
+    sources = []
+    targets = []
+    hypoths = []
+
     num_sentences = 0
     has_target = True
     with progress_bar.build_progress_bar(args, itr) as t:
@@ -115,6 +121,9 @@ def main(args):
                 if has_target:
                     target_str = tgt_dict.string(target_tokens, args.remove_bpe, escape_unk=True)
 
+            sources.append(src_str)
+            targets.append(target_str)
+
             if not args.quiet:
                 print('S-{}\t{}'.format(sample_id, src_str))
                 if has_target:
@@ -132,7 +141,8 @@ def main(args):
                 )
 
                 if not args.quiet:
-                    print('H-{}\t{}\t{}'.format(sample_id, hypo['score'], hypo_str))
+                    # print('H-{}\t{}\t{}'.format(sample_id, hypo['score'], hypo_str))
+                    print('H-{}\t{}\t{}'.format(sample_id, hypo_str, hypo['score']))
                     print('P-{}\t{}'.format(
                         sample_id,
                         ' '.join(map(
@@ -154,6 +164,7 @@ def main(args):
                         target_tokens = tokenizer.Tokenizer.tokenize(
                             target_str, tgt_dict, add_if_not_exist=True)
                     scorer.add(target_tokens, hypo_tokens)
+                    hypoths.append(hypo_str)
 
             wps_meter.update(src_tokens.size(0))
             t.log({'wps': round(wps_meter.avg)})
@@ -164,8 +175,25 @@ def main(args):
     if has_target:
         print('| Generate {} with beam={}: {}'.format(args.gen_subset, args.beam, scorer.result_string()))
 
+    # compute GLEU
+    gleu_calculator = GLEU(args.n)
+    gleu_calculator.load_text_sources(sources)
+    gleu_calculator.load_text_references([targets])
+    gleu_scores = gleu_calculator.run_iterations(num_iterations=args.iter,
+                                                 hypothesis=hypoths,
+                                                 per_sent=args.sent)
+    print('GLEU = {:2.2f}'.format([g for g in gleu_scores][0][0] * 100))
 
 if __name__ == '__main__':
+    # BLEU arguments
     parser = options.get_generation_parser()
+    # GLEU arguments
+    # parser.add_argument('--ref', '-r', nargs='*', required=True, help='ref file(s)')
+    # parser.add_argument('--src', '-s', required=True, help='src file')
+    # parser.add_argument('--hyp', nargs='*', required=True, help='hyp file(s)')
+    parser.add_argument('-n', default=4, type=int, help='n-gram order')
+    parser.add_argument('--iter', default=500, help='number of GLEU iterations')
+    parser.add_argument('--sent', default=False, action='store_true', help='sentence level scores')
+
     args = options.parse_args_and_arch(parser)
     main(args)
