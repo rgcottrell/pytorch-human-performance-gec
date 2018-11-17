@@ -125,7 +125,7 @@ Note that this script may need to be adjusted based on the GPU and memory resour
 To test the model, run the following command to try to correct a test list of sentences:
 
 ```sh
-translate-lang8-cnn.bat
+generate-lang8-cnn.bat
 ```
 
 ### Patching fairseq Environment
