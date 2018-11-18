@@ -48,8 +48,12 @@ def split_file(file, out1, out2, percentage=0.5):
 def main(opt):
     process(opt.src_dir, opt.out_dir, 'train')
     process(opt.src_dir, opt.out_dir, 'test')
+
+    # rename test file to temp file so that test can be split into validation and test sets
     os.rename(os.path.join(opt.out_dir, 'lang8-' + 'test' + '.en'), os.path.join(opt.out_dir, 'lang8-' + 'temp' + '.en'))
     os.rename(os.path.join(opt.out_dir, 'lang8-' + 'test' + '.gec'), os.path.join(opt.out_dir, 'lang8-' + 'temp' + '.gec'))
+
+    # split
     split_file(
         os.path.join(opt.out_dir, 'lang8-' + 'temp' + '.en'),
         os.path.join(opt.out_dir, 'lang8-' + 'valid' + '.en'),
@@ -60,6 +64,8 @@ def main(opt):
         os.path.join(opt.out_dir, 'lang8-' + 'valid' + '.gec'),
         os.path.join(opt.out_dir, 'lang8-' + 'test' + '.gec')
     )
+
+    # remove temp file
     os.remove(os.path.join(opt.out_dir, 'lang8-' + 'temp' + '.en'))
     os.remove(os.path.join(opt.out_dir, 'lang8-' + 'temp' + '.gec'))
 

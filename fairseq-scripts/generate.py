@@ -182,7 +182,8 @@ def main(args):
     gleu_scores = gleu_calculator.run_iterations(num_iterations=args.iter,
                                                  hypothesis=hypoths,
                                                  per_sent=args.sent)
-    print('GLEU = {:2.2f}'.format([g for g in gleu_scores][0][0] * 100))
+    gleu_score = [g for g in gleu_scores][0][0] * 100;
+    print('| Generate {} with beam={}: GLEU = {:2.2f}'.format(args.gen_subset, args.beam, gleu_score))
 
 if __name__ == '__main__':
     # BLEU arguments
