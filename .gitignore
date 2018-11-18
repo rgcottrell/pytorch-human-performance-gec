@@ -9,7 +9,11 @@ opennmt/data/
 opennmt/models/
 test/*
 !test/jfleg/
+test/jfleg/dict.*.txt
+test/jfleg/test.en-gec.*
 !test/lang-8/
+test/lang-8/dict.*.txt
+test/lang-8/test.en-gec.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
