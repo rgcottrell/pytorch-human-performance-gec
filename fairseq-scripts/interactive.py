@@ -18,9 +18,10 @@ import torch
 from fairseq import data, options, tasks, tokenizer, utils
 from fairseq.sequence_generator import SequenceGenerator
 
+from gleu import GLEU
 
 Batch = namedtuple('Batch', 'srcs tokens lengths')
-Translation = namedtuple('Translation', 'src_str hypos pos_scores alignments')
+Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores alignments')
 
 
 def buffered_read(buffer_size):
@@ -106,11 +107,12 @@ def main(args):
     # (None if no unknown word replacement, empty if no path to align dictionary)
     align_dict = utils.load_align_dict(args.replace_unk)
 
-    def make_result(src_str, hypos):
+    def make_result(src_str, hypos, tgt_str=''):
         result = Translation(
             src_str='O\t{}'.format(src_str),
             hypos=[],
             pos_scores=[],
+            gleu_scores=[],
             alignments=[],
         )
 
@@ -136,9 +138,23 @@ def main(args):
                 'A\t{}'.format(' '.join(map(lambda x: str(utils.item(x)), alignment)))
                 if args.print_alignment else None
             )
+
+            # compute GLEU if target is provided
+            if tgt_str:
+                gleu_calculator = GLEU(args.n)
+                gleu_calculator.load_text_sources([src_str])
+                gleu_calculator.load_text_references([[tgt_str]])
+                gleu_scores = gleu_calculator.run_iterations(num_iterations=args.iter,
+                                                             hypothesis=[hypo_str],
+                                                             per_sent=args.sent)
+                gleu_score = [g for g in gleu_scores][0][0] * 100;
+                result.gleu_scores.append('GLEU {:2.2f}'.format(gleu_score))
+            else:
+                result.gleu_scores.append('GLEU N/A (no target was provided. use format "source sentence|target setence" to provide a target/reference)')
+
         return result
 
-    def process_batch(batch):
+    def process_batch(batch, tgts):
         tokens = batch.tokens
         lengths = batch.lengths
 
@@ -152,7 +168,7 @@ def main(args):
             maxlen=int(args.max_len_a * tokens.size(1) + args.max_len_b),
         )
 
-        return [make_result(batch.srcs[i], t) for i, t in enumerate(translations)]
+        return [make_result(batch.srcs[i], t, tgts[i]) for i, t in enumerate(translations)]
 
     max_positions = utils.resolve_max_positions(
         task.max_positions(),
@@ -163,23 +179,30 @@ def main(args):
         print('| Sentence buffer size:', args.buffer_size)
     print('| Type the input sentence and press return:')
     for inputs in buffered_read(args.buffer_size):
+        sources = [line.split('|')[0] for line in inputs]
+        targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
         indices = []
         results = []
-        for batch, batch_indices in make_batches(inputs, args, task, max_positions):
+        for batch, batch_indices in make_batches(sources, args, task, max_positions):
             indices.extend(batch_indices)
-            results += process_batch(batch)
+            results += process_batch(batch, targets)
 
         for i in np.argsort(indices):
             result = results[i]
             print(result.src_str)
-            for hypo, pos_scores, align in zip(result.hypos, result.pos_scores, result.alignments):
+            for hypo, pos_scores, gleu_scores, align in zip(result.hypos, result.pos_scores, result.gleu_scores, result.alignments):
                 print(hypo)
                 print(pos_scores)
+                print(gleu_scores)
                 if align is not None:
                     print(align)
 
 
 if __name__ == '__main__':
     parser = options.get_generation_parser(interactive=True)
+    # GLEU arguments
+    parser.add_argument('-n', default=4, type=int, help='n-gram order')
+    parser.add_argument('--iter', default=500, help='number of GLEU iterations')
+    parser.add_argument('--sent', default=True, action='store_true', help='sentence level scores')
     args = options.parse_args_and_arch(parser)
     main(args)
