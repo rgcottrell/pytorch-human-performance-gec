@@ -7,3 +7,6 @@ python .\interactive.py^
     --path ..\checkpoints\lang-8-fairseq-cnn\checkpoint_best.pt^
     --beam 5^
     --nbest 1^
+    --lang-model-data ..\data-bin\wiki103^
+    --lang-model-path ..\data-bin\wiki103\wiki103.pt^
+    --gen-subset test

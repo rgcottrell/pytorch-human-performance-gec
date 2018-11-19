@@ -19,9 +19,10 @@ from fairseq import data, options, tasks, tokenizer, utils
 from fairseq.sequence_generator import SequenceGenerator
 
 from gleu import GLEU
+from interactive_fluency_scorer import InteractiveFluencyScorer
 
 Batch = namedtuple('Batch', 'srcs tokens lengths')
-Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores alignments')
+Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores fluency_scores alignments')
 
 
 def buffered_read(buffer_size):
@@ -107,12 +108,16 @@ def main(args):
     # (None if no unknown word replacement, empty if no path to align dictionary)
     align_dict = utils.load_align_dict(args.replace_unk)
 
+    # Initialize fluency scorer (and language model)
+    fluency_scorer = InteractiveFluencyScorer(args.lang_model_path, args.lang_model_data)
+
     def make_result(src_str, hypos, tgt_str=''):
         result = Translation(
             src_str='O\t{}'.format(src_str),
             hypos=[],
             pos_scores=[],
             gleu_scores=[],
+            fluency_scores=[],
             alignments=[],
         )
 
@@ -152,6 +157,11 @@ def main(args):
             else:
                 result.gleu_scores.append('GLEU N/A (no target was provided. use format "source sentence|target setence" to provide a target/reference)')
 
+            # compute fluency score
+            if src_str:
+                fluency_scores = fluency_scorer.run(args.gen_subset, src_str)
+                result.fluency_scores.append("Fluency Score: {:0.4f}".format(fluency_scores))
+
         return result
 
     def process_batch(batch, tgts):
@@ -190,10 +200,11 @@ def main(args):
         for i in np.argsort(indices):
             result = results[i]
             print(result.src_str)
-            for hypo, pos_scores, gleu_scores, align in zip(result.hypos, result.pos_scores, result.gleu_scores, result.alignments):
+            for hypo, pos_scores, gleu_scores, fluency_scores, align in zip(result.hypos, result.pos_scores, result.gleu_scores, result.fluency_scores, result.alignments):
                 print(hypo)
                 print(pos_scores)
                 print(gleu_scores)
+                print(fluency_scores)
                 if align is not None:
                     print(align)
 
@@ -204,5 +215,8 @@ if __name__ == '__main__':
     parser.add_argument('-n', default=4, type=int, help='n-gram order')
     parser.add_argument('--iter', default=500, help='number of GLEU iterations')
     parser.add_argument('--sent', default=True, action='store_true', help='sentence level scores')
+    # fluency score arguments
+    parser.add_argument('--lang-model-data', help='path to language model dictionary')
+    parser.add_argument('--lang-model-path', help='path to language model file')
     args = options.parse_args_and_arch(parser)
     main(args)
