@@ -3,8 +3,9 @@ Evaluate the fluency of a trained language model.
 """
 
 import torch
+import numpy as np
 
-from fairseq import data, tasks, utils
+from fairseq import data, tasks, tokenizer, utils
 from fairseq.sequence_scorer import SequenceScorer
 
 class FluencyArgs(dict):
@@ -73,14 +74,14 @@ class FluencyScorer(object):
         if self.use_cuda:
             self.scorer.cuda()
     
-    def run(self, subset):
+    def score_dataset(self, subset):
         # Load the dataset.
         self.task.load_dataset(subset)
 
         # Create batch iterator.
         itr = self.task.get_batch_iterator(
             dataset=self.task.dataset(subset),
-            max_tokens=self.args.max_tokens or 3600,
+            max_tokens=self.args.max_tokens or 3000,
             max_sentences=self.args.max_sentences,
             max_positions=utils.resolve_max_positions(*[
                 model.max_positions() for model in self.models 
@@ -90,6 +91,41 @@ class FluencyScorer(object):
             ignore_invalid_inputs=True,
         ).next_epoch_itr(shuffle=False)
 
+        # Generate fluency scores for the dataset.
+        self._score_itr(itr)
+
+    def score_lines(self, lines):
+        # Tokenize the input.
+        tokens = [
+            tokenizer.Tokenizer.tokenize(src_str, self.task.dictionary, add_if_not_exist=False).long()
+            for src_str in lines
+        ]
+        lengths = np.array([t.numel() for t in tokens])
+
+        # TODO: concat tokens into a single tensor
+        tokens = tokenizer.Tokenizer.tokenize(' </s> '.join(lines), self.task.dictionary, add_if_not_exist=False).long()
+
+        # Create dataset.
+        ds = data.TokenBlockDataset(tokens, lengths, self.args.tokens_per_sample, pad=self.task.dictionary.pad(), eos=self.task.dictionary.eos(), break_mode=self.args.sample_break_mode, include_targets=True)
+
+        # Create batch iterator.
+        add_eos_for_other_targets = self.args.sample_break_mode is not None and self.args.sample_break_mode != 'none'
+        itr = self.task.get_batch_iterator(
+            dataset=data.MonolingualDataset(ds, ds.sizes, self.task.dictionary, self.task.target_dictionary, add_eos_for_other_targets=add_eos_for_other_targets, shuffle=False, targets=self.task.targets),
+            max_tokens=self.args.max_tokens or 3000,
+            max_sentences=self.args.max_sentences,
+            max_positions=utils.resolve_max_positions(*[
+                model.max_positions() for model in self.models 
+            ]),
+            num_shards=self.args.num_shards,
+            shard_id=self.args.shard_id,
+            ignore_invalid_inputs=True,
+        ).next_epoch_itr(shuffle=False)
+        
+        # Generate fluence scores for the lines.
+        self._score_itr(itr)
+
+    def _score_itr(self, itr):
         results = self.scorer.score_batched_itr(itr, cuda=self.use_cuda)
         for _, _, _, hypos in results:
             for hypo in hypos:
