@@ -19,7 +19,7 @@ from fairseq import data, options, tasks, tokenizer, utils
 from fairseq.sequence_generator import SequenceGenerator
 
 from gleu import GLEU
-from interactive_fluency_scorer import InteractiveFluencyScorer
+from fluency_scorer import FluencyScorer
 
 Batch = namedtuple('Batch', 'srcs tokens lengths')
 Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores fluency_scores alignments')
@@ -109,7 +109,7 @@ def main(args):
     align_dict = utils.load_align_dict(args.replace_unk)
 
     # Initialize fluency scorer (and language model)
-    fluency_scorer = InteractiveFluencyScorer(args.lang_model_path, args.lang_model_data)
+    fluency_scorer = FluencyScorer(args.lang_model_path, args.lang_model_data)
 
     def make_result(src_str, hypos, tgt_str=''):
         result = Translation(
@@ -159,7 +159,7 @@ def main(args):
 
             # compute fluency score
             if src_str:
-                fluency_scores = fluency_scorer.run(args.gen_subset, src_str)
+                fluency_scores = fluency_scorer.score_sentence(src_str)
                 result.fluency_scores.append("Fluency Score: {:0.4f}".format(fluency_scores))
 
         return result

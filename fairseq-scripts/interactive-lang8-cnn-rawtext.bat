@@ -9,4 +9,5 @@ python .\interactive.py^
     --nbest 1^
     --lang-model-data ..\data-bin\wiki103^
     --lang-model-path ..\data-bin\wiki103\wiki103.pt^
-    --gen-subset test
+    --source-lang en^
+    --target-lang gec
