@@ -21,6 +21,9 @@ from fairseq.sequence_generator import SequenceGenerator
 from gleu import GLEU
 from fluency_scorer import FluencyScorer
 
+from flask import Flask, render_template, request
+from gevent.pywsgi import WSGIServer
+
 Batch = namedtuple('Batch', 'srcs tokens lengths')
 Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores fluency_scores alignments')
 
@@ -158,9 +161,8 @@ def main(args):
                 result.gleu_scores.append('GLEU N/A (no target was provided. use format "source sentence|target setence" to provide a target/reference)')
 
             # compute fluency score
-            if src_str:
-                fluency_scores = fluency_scorer.score_sentence(src_str)
-                result.fluency_scores.append("Fluency Score: {:0.4f}".format(fluency_scores))
+            fluency_scores = fluency_scorer.score_sentence(hypo_str)
+            result.fluency_scores.append("Fluency Score: {:0.4f}".format(fluency_scores))
 
         return result
 
@@ -185,6 +187,13 @@ def main(args):
         *[model.max_positions() for model in models]
     )
 
+    if not args.server:
+        listen_to_stdin(args, max_positions, process_batch, task)
+    else:
+        listen_to_web(args, max_positions, process_batch, task)
+
+
+def listen_to_stdin(args, max_positions, process_batch, task):
     if args.buffer_size > 1:
         print('| Sentence buffer size:', args.buffer_size)
     print('| Type the input sentence and press return:')
@@ -193,21 +202,68 @@ def main(args):
         targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
         indices = []
         results = []
+
         for batch, batch_indices in make_batches(sources, args, task, max_positions):
             indices.extend(batch_indices)
             results += process_batch(batch, targets)
 
-        for i in np.argsort(indices):
-            result = results[i]
-            print(result.src_str)
-            for hypo, pos_scores, gleu_scores, fluency_scores, align in zip(result.hypos, result.pos_scores, result.gleu_scores, result.fluency_scores, result.alignments):
-                print(hypo)
-                print(pos_scores)
-                print(gleu_scores)
-                print(fluency_scores)
-                if align is not None:
-                    print(align)
+        print_batch_results(indices, results)
 
+
+def listen_to_web(args, max_positions, process_batch, task):
+    # initialize web app
+    app = Flask(__name__)
+
+    # register route
+    @app.route('/')
+    def gec():
+        input = request.args.get('input', '')
+        inputs = [input]
+        sources = [line.split('|')[0] for line in inputs]
+        targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
+        indices = []
+        results = []
+
+        for batch, batch_indices in make_batches(sources, args, task, max_positions):
+            indices.extend(batch_indices)
+            results += process_batch(batch, targets)
+
+        outputs = print_batch_results(indices, results)
+
+        return render_template('form.html', input=input, outputs=outputs)
+
+    # listen with web server
+    print('server running at port: {}'.format(args.port))
+    http_server = WSGIServer(('', args.port), app)
+    http_server.serve_forever()
+
+
+def print_batch_results(indices, results):
+    output = []
+    outputs = [output]
+
+    for i in np.argsort(indices):
+        result = results[i]
+        print(result.src_str)
+        output.append(result.src_str)
+        for hypo, pos_scores, gleu_scores, fluency_scores, align in zip(result.hypos, result.pos_scores,
+                                                                        result.gleu_scores, result.fluency_scores,
+                                                                        result.alignments):
+            print(result.src_str)
+            print(hypo)
+            print(pos_scores)
+            print(gleu_scores)
+            print(fluency_scores)
+            output.append(result.src_str)
+            output.append(hypo)
+            output.append(pos_scores)
+            output.append(gleu_scores)
+            output.append(fluency_scores)
+            if align is not None:
+                print(align)
+                output.append(align)
+
+    return outputs
 
 if __name__ == '__main__':
     parser = options.get_generation_parser(interactive=True)
@@ -218,5 +274,9 @@ if __name__ == '__main__':
     # fluency score arguments
     parser.add_argument('--lang-model-data', help='path to language model dictionary')
     parser.add_argument('--lang-model-path', help='path to language model file')
+    # server arguments
+    parser.add_argument('--server', default=False, action='store_true', help='listen with built-in web server')
+    parser.add_argument('--port', default=5000, type=int, help='port to web interface')
     args = options.parse_args_and_arch(parser)
+    # main logic and events
     main(args)

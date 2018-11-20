@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GEC</title>
+</head>
+<body>
+
+<form action="/" method="get">
+    <div>
+        <label for="input">Input:</label>
+        <input type="text" id="input" name="input" value="{{ input }}" size="80" maxlength="100"></input>
+    </div>
+    <div>
+        <button type="submit">Correct</button>
+    </div>
+</form>
+
+{% if input %}
+    <p>
+        Input<br/>
+        <i>{{ input }}</i><br/>
+        has been corrected to<br/>
+        {% for output_lines in outputs %}
+            <p>
+                <ul>
+                    {% for output_line in output_lines %}
+                        <li>{{ output_line }}</li>
+                    {% endfor %}
+                </ul>
+            </p>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+</body>
+</html>
