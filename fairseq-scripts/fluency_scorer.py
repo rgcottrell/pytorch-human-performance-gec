@@ -74,41 +74,13 @@ class FluencyScorer(object):
         if self.use_cuda:
             self.scorer.cuda()
     
-    def score_dataset(self, subset):
-        # Load the dataset.
-        self.task.load_dataset(subset)
-
-        # Create batch iterator.
-        itr = self.task.get_batch_iterator(
-            dataset=self.task.dataset(subset),
-            max_tokens=self.args.max_tokens or 3000,
-            max_sentences=self.args.max_sentences,
-            max_positions=utils.resolve_max_positions(*[
-                model.max_positions() for model in self.models 
-            ]),
-            num_shards=self.args.num_shards,
-            shard_id=self.args.shard_id,
-            ignore_invalid_inputs=True,
-        ).next_epoch_itr(shuffle=False)
-
-        # Generate fluency scores for the dataset.
-        self._score_itr(itr)
-
-    def score_lines(self, lines):
-        # Tokenize the input.
-        tokens = [
-            tokenizer.Tokenizer.tokenize(src_str, self.task.dictionary, add_if_not_exist=False).long()
-            for src_str in lines
-        ]
-        lengths = np.array([t.numel() for t in tokens])
-
-        # TODO: concat tokens into a single tensor
-        tokens = tokenizer.Tokenizer.tokenize(' </s> '.join(lines), self.task.dictionary, add_if_not_exist=False).long()
-
-        # Create dataset.
+    def score_sentence(self, line):
+        # Tokenize the input sentence into a batch of size one.
+        tokens = tokenizer.Tokenizer.tokenize(line, self.task.dictionary, add_if_not_exist=False).long()
+        lengths = np.array([tokens.numel()])
         ds = data.TokenBlockDataset(tokens, lengths, self.args.tokens_per_sample, pad=self.task.dictionary.pad(), eos=self.task.dictionary.eos(), break_mode=self.args.sample_break_mode, include_targets=True)
 
-        # Create batch iterator.
+        # Create a batch iterator to wrap the data.
         add_eos_for_other_targets = self.args.sample_break_mode is not None and self.args.sample_break_mode != 'none'
         itr = self.task.get_batch_iterator(
             dataset=data.MonolingualDataset(ds, ds.sizes, self.task.dictionary, self.task.target_dictionary, add_eos_for_other_targets=add_eos_for_other_targets, shuffle=False, targets=self.task.targets),
@@ -122,25 +94,16 @@ class FluencyScorer(object):
             ignore_invalid_inputs=True,
         ).next_epoch_itr(shuffle=False)
         
-        # Generate fluence scores for the lines.
-        self._score_itr(itr)
-
-    def _score_itr(self, itr):
+        # Evaluate the sentence and return the fluency score.
         results = self.scorer.score_batched_itr(itr, cuda=self.use_cuda)
         for _, _, _, hypos in results:
             for hypo in hypos:
+                # Ignore words with infinite probability. This can happen when
+                # running low-precision inference on the GPU. 
                 pos_scores = hypo['positional_scores']
-
-                words = []
-                word_prob = []
-                for i in range(len(hypo['tokens'])):
-                    w_ind = hypo['tokens'][i].item()
-                    w = self.task.dictionary[w_ind]
-                    words.append(w)
-                    word_prob.append(pos_scores[i].item())
-                
-                score = self._fluency_score(word_prob)
-                print("[{:0.4f}] {}".format(score, ' '.join(words)))
+                word_prob = [score for score in pos_scores if score != float('-inf') and score != float('inf')]
+                return self._fluency_score(word_prob)
+        return 0.0
 
     def _fluency_score(self, word_prob):
         """Calculate fluency score.
@@ -149,14 +112,14 @@ class FluencyScorer(object):
         fluency score of the sentence.
         """
 
+        # If there were no tokens because they were all filtered out for
+        # having infinite probabilites, then give a minimum fluency score.
+        if len(word_prob) == 0:
+            return 0.0
+
         H = 0.0
         for x in word_prob:
-            # Ignore words with infinite probability. This can happen when
-            # running low-precision inference on the GPU. 
-            #
-            # FIXME: What is the right thing to do here?
-            if x != float('-inf') and x != float('inf'):
-                H -= x
+            H -= x
         H = H / len(word_prob)
         score = 1.0 / (1.0 + H)
         return score
