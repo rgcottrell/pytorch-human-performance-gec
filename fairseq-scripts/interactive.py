@@ -22,6 +22,7 @@ from gleu import GLEU
 from fluency_scorer import FluencyScorer
 
 from flask import Flask, render_template, request
+from flask_restful import Resource, Api
 from gevent.pywsgi import WSGIServer
 
 Batch = namedtuple('Batch', 'srcs tokens lengths')
@@ -213,12 +214,28 @@ def listen_to_stdin(args, max_positions, process_batch, task):
 def listen_to_web(args, max_positions, process_batch, task):
     # initialize web app
     app = Flask(__name__)
+    api = Api(app)
 
-    # register route
+    # register route for web server
     @app.route('/')
     def gec():
         input = request.args.get('input', '')
         inputs = [input]
+        outputs = process_web_request(inputs)
+        return render_template('form.html', input=input, outputs=outputs)
+
+    class HelloWorld(Resource):
+        def get(self, input):
+            inputs = [input]
+            outputs = process_web_request(inputs)
+            return outputs
+
+    # register routes for API
+    api.add_resource(HelloWorld, '/api/<string:input>')
+
+
+    # process web request
+    def process_web_request(inputs):
         sources = [line.split('|')[0] for line in inputs]
         targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
         indices = []
@@ -229,8 +246,8 @@ def listen_to_web(args, max_positions, process_batch, task):
             results += process_batch(batch, targets)
 
         outputs = print_batch_results(indices, results)
+        return outputs
 
-        return render_template('form.html', input=input, outputs=outputs)
 
     # listen with web server
     print('server running at port: {}'.format(args.port))
