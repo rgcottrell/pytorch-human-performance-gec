@@ -24,9 +24,15 @@ from fluency_scorer import FluencyScorer
 from flask import Flask, render_template, request
 from flask_restful import Resource, Api
 from gevent.pywsgi import WSGIServer
+from operator import attrgetter
 
 Batch = namedtuple('Batch', 'srcs tokens lengths')
-Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores fluency_scores alignments')
+# Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores fluency_scores alignments')
+class Correction(object):
+    iteration = 0
+    src_str = hypo_str = ''
+    hypo_score = pos_scores = gleu_scores = fluency_scores = alignments = 0
+    hypo_score_str = pos_scores_str = gleu_scores_str = fluency_scores_str = alignments_str = ''
 
 
 def buffered_read(buffer_size):
@@ -115,18 +121,25 @@ def main(args):
     # Initialize fluency scorer (and language model)
     fluency_scorer = FluencyScorer(args.lang_model_path, args.lang_model_data)
 
-    def make_result(src_str, hypos, tgt_str=''):
-        result = Translation(
-            src_str='O\t{}'.format(src_str),
-            hypos=[],
-            pos_scores=[],
-            gleu_scores=[],
-            fluency_scores=[],
-            alignments=[],
-        )
+    def make_result(src_str, hypos, tgt_str='', iteration=0):
+        results = []
+
+        # compute fluency score for source string
+        # the source string itself is an entry
+        result0 = Correction()
+        result0.iteration = iteration
+        result0.src_str = result0.hypo_str = src_str
+        fluency_scores = fluency_scorer.score_sentence(src_str).item()
+        result0.fluency_scores = fluency_scores
+        result0.fluency_scores_str = "Fluency Score: {:0.4f}".format(fluency_scores)
+        results.append(result0)
 
         # Process top predictions
         for hypo in hypos[:min(len(hypos), args.nbest)]:
+            result = Correction()
+            result.iteration = iteration + 1
+            result.src_str = src_str
+
             hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
                 hypo_tokens=hypo['tokens'].int().cpu(),
                 src_str=src_str,
@@ -136,14 +149,15 @@ def main(args):
                 remove_bpe=args.remove_bpe,
             )
             # result.hypos.append('H\t{}\t{}'.format(hypo['score'], hypo_str))
-            result.hypos.append('H\t{}\t{}'.format(hypo_str, hypo['score']))
-            result.pos_scores.append('P\t{}'.format(
+            result.hypo_str = hypo_str
+            result.hypo_score = result.hypo_score_str = hypo['score']
+            result.pos_scores_str = 'P\t{}'.format(
                 ' '.join(map(
                     lambda x: '{:.4f}'.format(x),
                     hypo['positional_scores'].tolist(),
                 ))
-            ))
-            result.alignments.append(
+            )
+            result.alignments_str = (
                 'A\t{}'.format(' '.join(map(lambda x: str(utils.item(x)), alignment)))
                 if args.print_alignment else None
             )
@@ -157,17 +171,21 @@ def main(args):
                                                              hypothesis=[hypo_str],
                                                              per_sent=args.sent)
                 gleu_score = [g for g in gleu_scores][0][0] * 100;
-                result.gleu_scores.append('GLEU {:2.2f}'.format(gleu_score))
+                result.gleu_scores = gleu_score
+                result.gleu_scores_str = 'GLEU {:2.2f}'.format(gleu_score)
             else:
-                result.gleu_scores.append('GLEU N/A (no target was provided. use format "source sentence|target setence" to provide a target/reference)')
+                result.gleu_scores_str = 'GLEU N/A (no target was provided. use format "source sentence|target setence" to provide a target/reference)'
 
             # compute fluency score
-            fluency_scores = fluency_scorer.score_sentence(hypo_str)
-            result.fluency_scores.append("Fluency Score: {:0.4f}".format(fluency_scores))
+            fluency_scores = fluency_scorer.score_sentence(hypo_str).item()
+            result.fluency_scores = fluency_scores
+            result.fluency_scores_str = "Fluency Score: {:0.4f}".format(fluency_scores)
 
-        return result
+            results.append(result)
 
-    def process_batch(batch, tgts):
+        return results
+
+    def process_batch(batch, tgts, iteration):
         tokens = batch.tokens
         lengths = batch.lengths
 
@@ -181,7 +199,7 @@ def main(args):
             maxlen=int(args.max_len_a * tokens.size(1) + args.max_len_b),
         )
 
-        return [make_result(batch.srcs[i], t, tgts[i]) for i, t in enumerate(translations)]
+        return [make_result(batch.srcs[i], t, tgts[i], iteration) for i, t in enumerate(translations)]
 
     max_positions = utils.resolve_max_positions(
         task.max_positions(),
@@ -189,29 +207,20 @@ def main(args):
     )
 
     if not args.server:
-        listen_to_stdin(args, max_positions, process_batch, task)
+        listen_to_stdin(args, max_positions, task, process_batch)
     else:
-        listen_to_web(args, max_positions, process_batch, task)
+        listen_to_web(args, max_positions, task, process_batch)
 
 
-def listen_to_stdin(args, max_positions, process_batch, task):
+def listen_to_stdin(args, max_positions, task, process_batch):
     if args.buffer_size > 1:
         print('| Sentence buffer size:', args.buffer_size)
     print('| Type the input sentence and press return:')
     for inputs in buffered_read(args.buffer_size):
-        sources = [line.split('|')[0] for line in inputs]
-        targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
-        indices = []
-        results = []
-
-        for batch, batch_indices in make_batches(sources, args, task, max_positions):
-            indices.extend(batch_indices)
-            results += process_batch(batch, targets)
-
-        print_batch_results(indices, results)
+        process_inputs(args, inputs, max_positions, task, process_batch)
 
 
-def listen_to_web(args, max_positions, process_batch, task):
+def listen_to_web(args, max_positions, task, process_batch):
     # initialize web app
     app = Flask(__name__)
     api = Api(app)
@@ -221,33 +230,17 @@ def listen_to_web(args, max_positions, process_batch, task):
     def gec():
         input = request.args.get('input', '')
         inputs = [input]
-        outputs = process_web_request(inputs)
+        results, outputs = process_inputs(args, inputs, max_positions, task, process_batch)
         return render_template('form.html', input=input, outputs=outputs)
 
     class HelloWorld(Resource):
         def get(self, input):
             inputs = [input]
-            outputs = process_web_request(inputs)
+            results, outputs = process_inputs(args, inputs, max_positions, task, process_batch)
             return outputs
 
     # register routes for API
     api.add_resource(HelloWorld, '/api/<string:input>')
-
-
-    # process web request
-    def process_web_request(inputs):
-        sources = [line.split('|')[0] for line in inputs]
-        targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
-        indices = []
-        results = []
-
-        for batch, batch_indices in make_batches(sources, args, task, max_positions):
-            indices.extend(batch_indices)
-            results += process_batch(batch, targets)
-
-        outputs = print_batch_results(indices, results)
-        return outputs
-
 
     # listen with web server
     print('server running at port: {}'.format(args.port))
@@ -255,34 +248,77 @@ def listen_to_web(args, max_positions, process_batch, task):
     http_server.serve_forever()
 
 
+def process_inputs(args, inputs, max_positions, task, process_batch):
+    sources = [line.split('|')[0] for line in inputs]
+    targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
+    indices = []
+    results = []
+    outputs = []
+
+    iteration = 0
+    best_fluency_score = 0
+    best_hypo_str = ''
+    # Boost inference
+    while True:
+        for batch, batch_indices in make_batches(sources, args, task, max_positions):
+            indices.extend(batch_indices)
+            result = process_batch(batch, targets, iteration)
+            results += result
+
+        output = print_batch_results(indices, results)
+        outputs += output
+
+        if iteration == 0:
+            best_fluency_score = results[0][0].fluency_scores
+            best_hypo_str = sources[0]
+
+        max_correction = max(results[iteration], key=attrgetter('fluency_scores'))
+        if max_correction.fluency_scores <= best_fluency_score:
+            break
+        else:
+            iteration = iteration + 1
+            best_fluency_score = max_correction.fluency_scores
+            best_hypo_str = max_correction.hypo_str
+
+            sources = [best_hypo_str]
+            print('Boost inference from \t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
+            outputs[-1].append('boost inference from \t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
+
+    print('Best inference\t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
+    outputs[-1].append('Best inference H\t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
+
+    return results, outputs
+
+
 def print_batch_results(indices, results):
     output = []
     outputs = [output]
 
     for i in np.argsort(indices):
-        result = results[i]
-        print(result.src_str)
-        output.append(result.src_str)
-        for hypo, pos_scores, gleu_scores, fluency_scores, align in zip(result.hypos, result.pos_scores,
-                                                                        result.gleu_scores, result.fluency_scores,
-                                                                        result.alignments):
-            print(result.src_str)
-            print(hypo)
-            print(pos_scores)
-            print(gleu_scores)
-            print(fluency_scores)
-            output.append(result.src_str)
-            output.append(hypo)
-            output.append(pos_scores)
-            output.append(gleu_scores)
-            output.append(fluency_scores)
-            if align is not None:
-                print(align)
-                output.append(align)
+        for result in results[i]:
+            print('Iteration\t{}'.format(result.iteration))
+            print('O\t{}'.format(result.src_str))
+            print('H\t{}\t{}'.format(result.hypo_str, result.hypo_score))
+            # print('H\t{}'.format(result.hypo_str))
+            # print(result.pos_scores_str)
+            print(result.fluency_scores_str)
+            output.append('Iteration\t{}'.format(result.iteration))
+            output.append('O\t{}'.format(result.src_str))
+            output.append('H\t{}\t{}'.format(result.hypo_str, result.hypo_score))
+            # output.append('H\t{}'.format(result.hypo_str))
+            # output.append(result.pos_scores_str)
+            output.append(result.fluency_scores_str)
+            if result.gleu_scores:
+                print(result.gleu_scores_str)
+                output.append(result.gleu_scores_str)
+            if result.alignments_str is not None:
+                print(result.alignments_str)
+                output.append(result.alignments_str)
 
     return outputs
 
 if __name__ == '__main__':
+    # BLEU arguments
     parser = options.get_generation_parser(interactive=True)
     # GLEU arguments
     parser.add_argument('-n', default=4, type=int, help='n-gram order')
