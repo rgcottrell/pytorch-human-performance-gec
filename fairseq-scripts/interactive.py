@@ -21,13 +21,14 @@ from fairseq.sequence_generator import SequenceGenerator
 from gleu import GLEU
 from fluency_scorer import FluencyScorer
 
-from flask import Flask, render_template, request
-from flask_restful import Resource, Api
+from flask import Flask, render_template, request, send_from_directory
+from flask_restful import Resource, Api, fields, marshal_with
 from gevent.pywsgi import WSGIServer
 from operator import attrgetter
 
 Batch = namedtuple('Batch', 'srcs tokens lengths')
 # Translation = namedtuple('Translation', 'src_str hypos pos_scores gleu_scores fluency_scores alignments')
+
 class Correction(object):
     iteration = 0
     src_str = hypo_str = ''
@@ -212,42 +213,6 @@ def main(args):
         listen_to_web(args, max_positions, task, process_batch)
 
 
-def listen_to_stdin(args, max_positions, task, process_batch):
-    if args.buffer_size > 1:
-        print('| Sentence buffer size:', args.buffer_size)
-    print('| Type the input sentence and press return:')
-    for inputs in buffered_read(args.buffer_size):
-        process_inputs(args, inputs, max_positions, task, process_batch)
-
-
-def listen_to_web(args, max_positions, task, process_batch):
-    # initialize web app
-    app = Flask(__name__)
-    api = Api(app)
-
-    # register route for web server
-    @app.route('/')
-    def gec():
-        input = request.args.get('input', '')
-        inputs = [input]
-        results, outputs = process_inputs(args, inputs, max_positions, task, process_batch)
-        return render_template('form.html', input=input, outputs=outputs)
-
-    class HelloWorld(Resource):
-        def get(self, input):
-            inputs = [input]
-            results, outputs = process_inputs(args, inputs, max_positions, task, process_batch)
-            return outputs
-
-    # register routes for API
-    api.add_resource(HelloWorld, '/api/<string:input>')
-
-    # listen with web server
-    print('server running at port: {}'.format(args.port))
-    http_server = WSGIServer(('', args.port), app)
-    http_server.serve_forever()
-
-
 def process_inputs(args, inputs, max_positions, task, process_batch):
     sources = [line.split('|')[0] for line in inputs]
     targets = [line.split('|')[1] if len(line.split('|')) >= 2 else '' for line in inputs]
@@ -316,6 +281,65 @@ def print_batch_results(indices, results):
                 output.append(result.alignments_str)
 
     return outputs
+
+
+def listen_to_stdin(args, max_positions, task, process_batch):
+    if args.buffer_size > 1:
+        print('| Sentence buffer size:', args.buffer_size)
+    print('| Type the input sentence and press return:')
+    for inputs in buffered_read(args.buffer_size):
+        process_inputs(args, inputs, max_positions, task, process_batch)
+
+
+def listen_to_web(args, max_positions, task, process_batch):
+    # initialize web app
+    app = Flask(__name__, static_folder='')
+    api = Api(app)
+
+    # register route for web server
+
+    # a simple form page
+    @app.route('/form')
+    def form():
+        input = request.args.get('input', '')
+        inputs = [input]
+        results, outputs = process_inputs(args, inputs, max_positions, task, process_batch)
+        return render_template('form.html', input=input, outputs=outputs)
+
+    # a dynamic web app with static resource
+    @app.route('/')
+    def index():
+        return render_template('index.html')
+
+    @app.route('/static/<path:path>')
+    def send_static(path):
+        return send_from_directory('templates/static', path)
+
+    # a JSON api
+    resource_fields = {
+        'iteration': fields.Integer,
+        'src_str': fields.String, 'hypo_str': fields.String,
+        'hypo_score': fields.Float, 'pos_scores': fields.Float, 'gleu_scores': fields.Float,
+        'fluency_scores': fields.Float, 'alignments': fields.Float,
+        'hypo_score_str': fields.String, 'pos_scores_str': fields.String, 'gleu_scores_str': fields.String,
+        'fluency_scores_str': fields.String,  'alignments_str': fields.String
+    }
+    class API(Resource):
+        @marshal_with(resource_fields)
+        def get(self, input):
+            inputs = [input]
+            results, outputs = process_inputs(args, inputs, max_positions, task, process_batch)
+            # return outputs # raw string outputs
+            return results # json
+
+    # register routes for API
+    api.add_resource(API, '/api/<string:input>')
+
+    # listen with web server
+    print('server running at port: {}'.format(args.port))
+    http_server = WSGIServer(('', args.port), app)
+    http_server.serve_forever()
+
 
 if __name__ == '__main__':
     # BLEU arguments

@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>GEC</title>
+    <title>Automatic Grammatical Error Correction</title>
 </head>
 <body>
 
-<form action="/" method="get">
+<form id="form" action="/" method="get">
+    <h1>Automatic Grammatical Error Correction</h1>
     <div>
         <label for="input">Input:</label>
-        <input type="text" id="input" name="input" value="{{ input }}" size="80" maxlength="100"></input>
+        <input type="text" id="input" name="input" value="{{ input }}" size="50" maxlength="100"></input>
     </div>
     <div>
         <button type="submit">Correct</button>
