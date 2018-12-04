@@ -17,6 +17,7 @@ from fairseq.sequence_generator import SequenceGenerator
 from fairseq.sequence_scorer import SequenceScorer
 
 from gleu import GLEU
+from fluency_scorer import FluencyScorer
 
 def main(args):
     assert args.path is not None, '--path required for generation!'
@@ -88,6 +89,9 @@ def main(args):
     if use_cuda:
         translator.cuda()
 
+    # Initialize fluency scorer (and language model)
+    fluency_scorer = FluencyScorer(args.lang_model_path, args.lang_model_data)
+
     # Generate and compute BLEU score
     scorer = bleu.Scorer(tgt_dict.pad(), tgt_dict.eos(), tgt_dict.unk())
     # Save all sources, targets and hypothesis to compute GLEU score
@@ -129,42 +133,71 @@ def main(args):
                 if has_target:
                     print('T-{}\t{}'.format(sample_id, target_str))
 
-            # Process top predictions
-            for i, hypo in enumerate(hypos[:min(len(hypos), args.nbest)]):
-                hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
-                    hypo_tokens=hypo['tokens'].int().cpu(),
-                    src_str=src_str,
-                    alignment=hypo['alignment'].int().cpu() if hypo['alignment'] is not None else None,
-                    align_dict=align_dict,
-                    tgt_dict=tgt_dict,
-                    remove_bpe=args.remove_bpe,
-                )
+            iteration = 0
+            curr_src_str = src_str
+            best_fluency_score = fluency_scorer.score_sentence(src_str).item()
+            best_hypo_str = ''
 
-                if not args.quiet:
-                    # print('H-{}\t{}\t{}'.format(sample_id, hypo['score'], hypo_str))
-                    print('H-{}\t{}\t{}'.format(sample_id, hypo_str, hypo['score']))
-                    print('P-{}\t{}'.format(
-                        sample_id,
-                        ' '.join(map(
-                            lambda x: '{:.4f}'.format(x),
-                            hypo['positional_scores'].tolist(),
-                        ))
-                    ))
+            # Boost inference
+            while True:
+                hypo_tokens_list = []
+                hypo_str_list = []
+                hypo_fluency_score_list = []
 
-                    if args.print_alignment:
-                        print('A-{}\t{}'.format(
+                # Process top predictions
+                for i, hypo in enumerate(hypos[:min(len(hypos), args.nbest)]):
+                    hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
+                        hypo_tokens=hypo['tokens'].int().cpu(),
+                        src_str=curr_src_str,
+                        alignment=hypo['alignment'].int().cpu() if hypo['alignment'] is not None else None,
+                        align_dict=align_dict,
+                        tgt_dict=tgt_dict,
+                        remove_bpe=args.remove_bpe,
+                    )
+
+                    hypo_tokens_list.append(hypo_tokens)
+                    hypo_str_list.append(hypo_str)
+                    hypo_fluency_score = fluency_scorer.score_sentence(hypo_str).item()
+                    hypo_fluency_score_list.append(hypo_fluency_score)
+
+                    if not args.quiet:
+                        # print('H-{}\t{}\t{}'.format(sample_id, hypo['score'], hypo_str))
+                        print('H-{}\t{}\t{}'.format(sample_id, hypo_str, hypo['score']))
+                        print('P-{}\t{}'.format(
                             sample_id,
-                            ' '.join(map(lambda x: str(utils.item(x)), alignment))
+                            ' '.join(map(
+                                lambda x: '{:.4f}'.format(x),
+                                hypo['positional_scores'].tolist(),
+                            ))
                         ))
+                        print('F-{}\t{}'.format(sample_id, hypo_fluency_score))
 
-                # Score only the top hypothesis
-                if has_target and i == 0:
+                        if args.print_alignment:
+                            print('A-{}\t{}'.format(
+                                sample_id,
+                                ' '.join(map(lambda x: str(utils.item(x)), alignment))
+                            ))
+
+                # Compare best scores
+                max_fluency_score = max(hypo_fluency_score_list)
+                max_idx = hypo_fluency_score_list.index(max_fluency_score)
+                max_hypo_str = hypo_str_list[max_idx]
+                if max_fluency_score <= best_fluency_score:
+                    # Score only the top hypothesis
                     if align_dict is not None or args.remove_bpe is not None:
                         # Convert back to tokens for evaluation with unk replacement and/or without BPE
-                        target_tokens = tokenizer.Tokenizer.tokenize(
-                            target_str, tgt_dict, add_if_not_exist=True)
-                    scorer.add(target_tokens, hypo_tokens)
-                    hypoths.append(hypo_str)
+                        target_tokens = tokenizer.Tokenizer.tokenize(target_str, tgt_dict, add_if_not_exist=True)
+                    max_tokens = hypo_tokens_list[max_idx]
+                    scorer.add(target_tokens, max_tokens)
+                    hypoths.append(max_hypo_str)
+                    hypoths.append(max_hypo_str)
+                    break
+                else:
+                    # Keep boosting
+                    iteration = iteration + 1
+                    curr_src_str = max_hypo_str
+                    best_fluency_score = max_fluency_score
+                    best_hypo_str = max_hypo_str
 
             wps_meter.update(src_tokens.size(0))
             t.log({'wps': round(wps_meter.avg)})
@@ -195,6 +228,9 @@ if __name__ == '__main__':
     parser.add_argument('-n', default=4, type=int, help='n-gram order')
     parser.add_argument('--iter', default=500, help='number of GLEU iterations')
     parser.add_argument('--sent', default=False, action='store_true', help='sentence level scores')
+    # fluency score arguments
+    parser.add_argument('--lang-model-data', help='path to language model dictionary')
+    parser.add_argument('--lang-model-path', help='path to language model file')
 
     args = options.parse_args_and_arch(parser)
     main(args)

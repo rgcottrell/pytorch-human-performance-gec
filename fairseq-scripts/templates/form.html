@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Automatic Grammatical Error Correction</title>
+</head>
+<body>
+
+<form id="form" action="/" method="get">
+    <h1>Automatic Grammatical Error Correction</h1>
+    <div>
+        <label for="input">Input:</label>
+        <input type="text" id="input" name="input" value="{{ input }}" size="50" maxlength="100"></input>
+    </div>
+    <div>
+        <button type="submit">Correct</button>
+    </div>
+</form>
+
+{% if input %}
+    <p>
+        Input<br/>
+        <i>{{ input }}</i><br/>
+        has been corrected to<br/>
+        {% for output_lines in outputs %}
+            <p>
+                <ul>
+                    {% for output_line in output_lines %}
+                        <li>{{ output_line }}</li>
+                    {% endfor %}
+                </ul>
+            </p>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+</body>
+</html>

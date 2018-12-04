@@ -1,0 +1,103 @@
+body {
+    font-size: 10px;
+    margin: 1rem;
+}
+
+#input {
+    width: 98%;
+}
+
+#correct-btn {
+    display: inline-block;
+    margin: 1rem auto;
+}
+
+.options {
+    display: inline-block;
+    margin: 1.5rem 1rem;
+}
+.options label {
+    margin-left: 1rem;
+}
+
+.container {
+    padding: 0.75rem 1rem;
+}
+.container.iteration, .container.balloon {
+    margin-top: 1rem;
+}
+
+.container.hypo-str {
+    display: inline-block;
+    width: 85%;
+}
+.container.fluency-scores {
+    display: inline-block;
+    width: 15%;
+}
+
+.container.hypo-str:after {
+    border-color: transparent;
+}
+.container.fluency-scores:after {
+    border-color: transparent;
+}
+
+.container.is-primary:after {
+    border-color: #209cee;
+}
+.container.is-success:after {
+    border-color: #92cc41;
+}
+.container.is-warning:after {
+    border-color: #f7d51d;
+}
+.container.is-error:after {
+    border-color: #e76e55;
+}
+
+.container.is-hidden {
+    display: none;
+}
+
+.tokens span.is-success {
+    color: #92cc41;
+}
+.tokens span.is-success:before {
+    content: " ";
+}
+.tokens span.is-error {
+    color: #e76e55;
+    text-decoration: line-through;
+}
+
+.arrow-down {
+    margin: 0 auto;
+    width: 0; 
+    height: 0; 
+    border-left: 1rem solid transparent;
+    border-right: 1rem solid transparent;
+    border-top: 1rem solid #209cee;
+}
+
+.balloon.container .balloon {
+    max-width: 600px;
+    margin: 2rem 2rem;
+}
+  
+.balloon.container .messages {
+    display: flex;
+    flex-direction: column;
+}
+.balloon.container .message {
+    display: flex;
+}
+.balloon.container .message i {
+    align-self: flex-end;
+}
+.balloon.container .message.-left {
+    align-self: flex-start;
+}
+.balloon.container .message.-right {
+    align-self: flex-end;
+}
