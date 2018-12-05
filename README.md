@@ -1,6 +1,12 @@
 # pytorch-human-performance-gec
 
-A PyTorch implementation of "Reaching Human-level Performance in Automatic Grammatical Error Correction: An Empirical Study"
+The goal of this project is to implement a grammatical error correction model from paper ["Reaching Human-level Performance in Automatic Grammatical Error Correction: An Empirical Study"](https://arxiv.org/abs/1807.01270) using [PyTorch](https://github.com/pytorch/pytorch) and [fairseq](https://github.com/pytorch/fairseq).
+
+While the original paper achieves human performance, this implementation is more about an empirical study on applying deep learning in NLP as a university team project.
+
+## What We Learned
+
+TODO
 
 ## Initialize Submodules
 
@@ -10,11 +16,22 @@ After checking out the repository, be sure to initialize the included git submod
 git submodule update --init --recursive
 ```
 
+The reasons of using them as submodules rather than Python package are:
+* some scripts and functions might need be patched in order to work properly.
+* a few scripts are modified based on the original scripts, which is the officially recommended way of using fairseq.
+
 ## Install Required Dependencies
 
-This project requires the use of `PyTorch`, which can be installed by following the directions on its [project page](https://pytorch.org)
+The environment used for the development is Windows 10 64bit + Python 3.6 + CUDA 9.2 + pytorch 0.4.1.
 
-This project also uses the `fairseq` NLP library, which is included as a submodule in this repository. To prepare the library for use, make sure that it is installed along with its dependencies.
+`PyTorch` can be installed by following the directions on its [project page](https://pytorch.org). Conda is recommended as it will install CUDA dependencies automatically. For example,
+
+```sh
+conda install pytorch cuda92 -c pytorch
+pip3 install torchvision
+```
+
+This project also uses the `fairseq` NLP toolkit, which is included as a submodule in this repository. To prepare the library for use, make sure that it is installed along with its dependencies.
 
 ```sh
 cd fairseq
@@ -22,9 +39,51 @@ pip install -r requirements.txt
 python setup.py build develop
 ```
 
+Other project depedencies are placed under `fairseq-scripts` folder, which can be installed by running
+
+```sh
+cd fairseq-scripts
+pip install -r requirements.txt
+```
+
+## Folder Structures
+
+TODO:
+
+```
+.
+|-- OpenNMT-py                  One of the other NLP toolkit we tried early (abandoned)
+|-- checkpoints
+|   |-- errorgen-fairseq-cnn
+|   |-- lang-8-fairseq
+|   `-- lang-8-fairseq-cnn
+|-- corpus
+|   |-- lang-8-en-1.0
+|   |-- lang-8-fairseq
+|   `-- lang-8-opennmt
+|-- data-bin
+|   |-- errorgen-fairseq
+|   |-- lang-8-fairseq
+|   `-- wiki103
+|-- fairseq
+|-- fairseq-scripts
+|-- opennmt
+|-- opennmt-scripts
+`-- test                        Random test text files can be thrown to here
+```
+
 ## fairseq Scripts
 
-All fairseq scripts have been grouped under `fairseq-scripts` folder.
+TODO:
+
+All fairseq scripts have been grouped under `fairseq-scripts` folder. The whole process is:
+
+1. Preparing data
+2. Pre-process data
+3. Train the model
+4. Testing the model
+5. Evaluate the model
+6. Interactive mode
 
 ### Preparing Data
 
@@ -39,6 +98,8 @@ e.g.
 ```sh
 python transform-lang8.py -src_dir ../corpus/lang-8-en-1.0 -out_dir ../corpus/lang-8-fairseq
 ```
+
+### Pre-process Data
 
 Once the data has been extracted from the dataset, use fairseq to prepare the training and validation data and create the vocabulary:
 
@@ -64,7 +125,7 @@ To test the model, run the following command to try to correct a test list of se
 generate-lang8-cnn.bat
 ```
 
-### Evaluate the model
+### Evaluate the Model
 
 Evaluate scripts are used to score model using text or pre-processed files in batch.
 
@@ -84,7 +145,7 @@ Above scripts can be modified to test other test dataset easily as they use plai
 
 Other scripts such as `generate-lang8.bat or generate-lang8-cnn.bat` can only deal with pre-processed data so it is less convenient.
 
-### Interactive scripts
+### Interactive Mode
 
 While evaluate scripts are good at batch processing, two interactive scripts are provided to see details of generation / correction.
 
