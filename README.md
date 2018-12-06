@@ -37,17 +37,150 @@ While the original paper achieves human performance, this implementation is more
 
 ### Completed
 
-TODO: screenshots
-
-- A left-to-right convolutional seq2seq model has been implemented using same architecture as the paper suggested.
+- A left-to-right 7-layer convolutional seq2seq model has been implemented using same architecture as the paper suggested.
 - The base convolutional seq2seq model has been trained using mostly same hyper parameters.
-- Fluency score function, which is used for both boost training / learning and boost inference, has been implemented.
-- GLEU score function, which is used to evaluate JFLEG test set, has been implemented.
-- Basic inference with the base model has been implemented.
-- Boost inference has been implemented to use both base model and language model.
+- Fluency score function, which is used for both boost training / learning and boost inference, has been implemented. For example, nature sentences get higher score.
+```
+[0.1977] It is a truth universally acknowledged , that a single man in possession of a good fortune must be in want of a wife . </s>
+[0.1937] I am going to a party tomorrow . </s>
+[0.1902] I am going to the party tomorrow . </s>
+[0.1864] It was the best of times , it was the worst of times , it was the age of wisdom , it was the age of foolishness , it was the epoch of belief , it was the epoch of incredulity , it was the season of Light , it was the season of Darkness , it was the spring of hope , it was the winter of despair , we had everything before us , we had nothing before us , we were all going direct to Heaven , we were all going direct the other way - in short , the period was so far like the present period , that some of its noisiest authorities insisted on its being received , for good or for evil , in the superlative degree of comparison only . </s>
+[0.1654] Yesterday I saw a car . </s>
+[0.1630] Tomorrow I am going to a party . </s>
+[0.1540] I saw the car yesterday . </s>
+[0.1473] Tomorrow I am going to party . </s>
+[0.1383] Tomorrow I go to party . </s>
+[0.1296] Yesterday I see car . </s>
+[0.1280] Yesterday I saw car . </s>
+```
+- GLEU score function, which is used to evaluate JFLEG test set, has been implemented. For example, similar sentences have higher GLEU score.
+```
+There are several reason|There are several reasons
+O       There are several reason
+H       There are several reasons       -0.029993820935487747
+P       -0.0028 -0.0339 -0.0015 -0.0464 -0.0653
+GLEU 100.00
+For not use car|Not for use with a car
+O       For not use car
+H       For not use car -0.06429481506347656
+P       -0.1332 -0.0239 -0.1537 -0.0102 -0.0006
+GLEU 27.40
+Every knowledge is connected each other|All knowledge is connected
+O       Every knowledge is connected each other
+H       Every knowledge is connected to each other      -0.17184138298034668
+P       -0.1573 -0.0054 -0.0348 -0.0004 -0.9934 -0.0301 -0.0026 -0.1507
+GLEU 18.58
+```
+- An error generation model has been implemented to generates more synthetic data from original training dataset, which will in turn boost training of the base model. For example.
+```
+S-3654  How many languages have you studied ?
+H-3654  How many language have you studied ?    -0.19821381568908691
+H-3654  How many languages do you study ?       -0.5254995822906494
+H-3654  How much languages have you studied ?   -0.5455195903778076
+H-3654  How many languages are you studied ?    -0.5917201042175293
+```
+- Basic inference with the base model has been implemented. For example, entered sentence is corrected in multiple ways.
+```
+In the world oil price very high right now .
+
+Iteration	0
+O	In the world oil price very high right now .
+H	In the world oil price very high right now .	0
+Fluency Score: 0.1503
+
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil prices very high right now .	-0.2768438458442688
+Fluency Score: 0.1539
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil prices are very high right now .	-0.31139659881591797
+Fluency Score: 0.1831
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil price is very high right now .	-0.3594667315483093
+Fluency Score: 0.1731
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil price very expensive right now .	-0.4148099422454834
+Fluency Score: 0.1434
+
+Best inference 	"In the world oil prices are very high right now ."	(0.1831)
+```
+- Boost inference has been implemented to use both base model and language model. For example, entered sentence is corrected in multiple ways, the best scored one is chosen for multiple rounds of correction, until the score cannot be improved.
+```
+In the world oil price very high right now .
+
+Iteration	0
+O	In the world oil price very high right now .
+H	In the world oil price very high right now .	0
+Fluency Score: 0.1503
+
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil prices very high right now .	-0.2768438458442688
+Fluency Score: 0.1539
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil prices are very high right now .	-0.31139659881591797
+Fluency Score: 0.1831
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil price is very high right now .	-0.3594667315483093
+Fluency Score: 0.1731
+Iteration	1
+O	In the world oil price very high right now .
+H	In the world oil price very expensive right now .	-0.4148099422454834
+Fluency Score: 0.1434
+
+Boost inference from 	"In the world oil prices are very high right now ."	(0.1831)
+
+Iteration	2
+O	In the world oil prices are very high right now .
+H	In the world oil prices are very expensive right now .	-0.3672739863395691
+Fluency Score: 0.1690
+Iteration	2
+O	In the world oil prices are very high right now .
+H	In the world oil prices are very high now .	-0.4246770739555359
+Fluency Score: 0.1883
+Iteration	2
+O	In the world oil prices are very high right now .
+H	The world oil prices are very high right now .	-0.42579686641693115
+Fluency Score: 0.1770
+Iteration	2
+O	In the world oil prices are very high right now .
+H	In the world oil prices are very high right now ,	-0.6304754018783569
+Fluency Score: 0.1748
+
+Boost inference from 	"In the world oil prices are very high now ."	(0.1883)
+
+Iteration	3
+O	In the world oil prices are very high now .
+H	In the world oil prices are very expensive now .	-0.41596412658691406
+Fluency Score: 0.1693
+Iteration	3
+O	In the world oil prices are very high now .
+H	The world oil prices are very high now .	-0.45905303955078125
+Fluency Score: 0.1780
+Iteration	3
+O	In the world oil prices are very high now .
+H	In world oil prices are very high now .	-0.47978001832962036
+Fluency Score: 0.1718
+Iteration	3
+O	In the world oil prices are very high now .
+H	In the world oil prices are very high now ,	-0.6376678347587585
+Fluency Score: 0.1780
+
+Best inference	"In the world oil prices are very high now ."	(0.1883)
+```
 - Evaluation of JFLEG test set using GLEU score.
+  - The base model has a GLEU score 48.17 on JFLEG test set when it was trained for 2 epochs.
+  - The base model has a GLEU score 48.89 on JFLEG test set when it was trained for 3 epochs.
+  - The introduction of boost inference increased GLEU from 48.89 to 49.39. The percentage of increase is consistent with the paper ( ≈ 1% ).
 - An enhanced interactive mode with RESTful API and Web GUI.
-- An error generation model has been implemented to generates more synthetic data from original training dataset, which will in turn boost training of the base model.
+  - RESTful API ![RESTful API](raw/restful-api.png?raw=true "RESTful API")
+  - Web GUI ![Web GUI](raw/web-gui.png?raw=true "Web GUI")
+  - Web GUI 2 ![Web GUI](raw/web-gui-2.png?raw=true "Web GUI 2")
 
 ### Not Completed
 

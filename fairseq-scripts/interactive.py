@@ -246,11 +246,11 @@ def process_inputs(args, inputs, max_positions, task, process_batch):
             best_hypo_str = max_correction.hypo_str
 
             sources = [best_hypo_str]
-            print('Boost inference from \t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
-            outputs[-1].append('boost inference from \t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
+            print('Boost inference from \t"{}"\t({:2.4f})'.format(best_hypo_str, best_fluency_score))
+            outputs[-1].append('boost inference from \t"{}"\t({:2.4f})'.format(best_hypo_str, best_fluency_score))
 
-    print('Best inference\t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
-    outputs[-1].append('Best inference H\t"{}"\t({:2.2f})'.format(best_hypo_str, best_fluency_score))
+    print('Best inference\t"{}"\t({:2.4f})'.format(best_hypo_str, best_fluency_score))
+    outputs[-1].append('Best inference H\t"{}"\t({:2.4f})'.format(best_hypo_str, best_fluency_score))
 
     return results, outputs
 
