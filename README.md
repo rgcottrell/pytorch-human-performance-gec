@@ -58,6 +58,7 @@ TODO:
 |   |-- lang-8-fairseq
 |   `-- lang-8-fairseq-cnn
 |-- corpus
+|   |-- errorgen-fairseq
 |   |-- lang-8-en-1.0
 |   |-- lang-8-fairseq
 |   `-- lang-8-opennmt
@@ -84,6 +85,7 @@ All fairseq scripts have been grouped under `fairseq-scripts` folder. The whole 
 4. Testing the model
 5. Evaluate the model
 6. Interactive mode
+7. Boosting
 
 ### Preparing Data
 
@@ -158,6 +160,32 @@ Below script will boot a local server to provide a web GUI and RESTful API inter
 ```sh
 interactive-lang8-cnn-web.bat
 ```
+
+### Boosting
+
+To augment training data to provide more examples of common errors, this project builds an error-generating model that can produce additional lower quality sentences for correct sentences. This uses the same training data as the regular model, but reverses the source and target sentences.
+
+Once the data has been extracted from the dataset, use fairseq to prepare the training and validation data and create the vocabulary:
+
+```sh
+preprocess-errorgen.bat
+```
+
+To train the error-correcting model, run the following command:
+
+```sh
+train-errorgen-cnn.bat
+```
+
+Note that this script may need to be adjusted based on the GPU and memory resources available for training.
+
+Now the error-generating model can be use to generate additional training data. The generating script will only consider sentences longer than four words that are at least 5% less fluent (as measured by the fluency scorer) than the corrected sentences. This ensures that the new sentences are more likely to showcase interesting corrections while avoiding trivial edits. Notice that in this case we use the latest model checkpoint rather than the most generalized, because in this particular case overfitting to the training data is an advantage!
+
+```sh
+generate-errorgen-cnn.bat
+```
+
+The sentences generated in the corpus\errorgen directory can thaen be used as additional data to train or fine tune the error-correcting model.
 
 ### Patching fairseq Environment
 
