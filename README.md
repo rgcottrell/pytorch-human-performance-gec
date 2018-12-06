@@ -178,9 +178,12 @@ Best inference	"In the world oil prices are very high now ."	(0.1883)
   - The base model has a GLEU score 48.89 on JFLEG test set when it was trained for 3 epochs.
   - The introduction of boost inference increased GLEU from 48.89 to 49.39. The percentage of increase is consistent with the paper ( ≈ 1% ).
 - An enhanced interactive mode with RESTful API and Web GUI.
-  - RESTful API ![RESTful API](raw/restful-api.png?raw=true "RESTful API")
-  - Web GUI ![Web GUI](raw/web-gui.png?raw=true "Web GUI")
-  - Web GUI 2 ![Web GUI](raw/web-gui-2.png?raw=true "Web GUI 2")
+  - RESTful API
+  - ![RESTful API](raw/restful-api.png?raw=true "RESTful API")
+  - Web GUI
+  - ![Web GUI](raw/web-gui.png?raw=true "Web GUI")
+  - Web GUI 2
+  - ![Web GUI 2](raw/web-gui-2.png?raw=true "Web GUI 2")
 
 ### Not Completed
 
