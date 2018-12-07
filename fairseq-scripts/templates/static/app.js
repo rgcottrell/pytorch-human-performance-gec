@@ -16,18 +16,20 @@ class App extends React.Component {
         event.preventDefault();
 
         var input = this.state.input;
-        if (!input) {
+        if (!input || input.trim().length === 0) {
             return;
         }
 
+        input = input.trim();
         if (input.match(/[a-zA-Z]$/)) {
             input += ' .'
-            this.setState({ input });
         }
-        if (input.match(/ $/)) {
-            input += '.'
-            this.setState({ input });
+        else if (input.match(/\.$/)) {
+            input = input.substr(0, input.length-1) + ' .';
+        } else {
+            input = input.substr(0, input.length-1) + ' ' + input.substr(input.length-1, 1);
         }
+        this.setState({ input });
 
         var api = '/api/' + input;
         // var api = 'http://localhost:5000/api/' + input;
