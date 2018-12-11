@@ -259,9 +259,7 @@ pip install -r requirements.txt
 `-- test                        Random test text files can be thrown to here
 ```
 
-## fairseq Scripts
-
-TODO: screenshots
+## fairseq Custom Scripts / Software Usage Tutorial
 
 All fairseq scripts have been grouped under `fairseq-scripts` folder. The whole process is:
 
