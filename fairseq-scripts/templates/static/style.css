@@ -2,6 +2,12 @@ body {
     font-size: 10px;
     margin: 1rem;
 }
+@media (min-width: 320px) and (max-width: 767px) {
+    body {
+        font-size: 6px;
+        margin: 0.25rem;
+    }
+}
 
 #input {
     width: 98%;
@@ -34,6 +40,14 @@ body {
 .container.fluency-scores {
     display: inline-block;
     width: 15%;
+}
+@media (min-width: 320px) and (max-width: 767px) {
+    .container.hypo-str {
+        width: auto;
+    }
+    .container.fluency-scores {
+        width: auto;
+    }
 }
 
 .container.hypo-str:after {
