@@ -305,11 +305,13 @@ Note that this script may need to be adjusted based on the GPU and memory resour
 
 ### Testing the Model
 
-To test the model, run the following command to try to correct a test list of sentences:
+To test the model, run the following command to try to correct a list of sentences:
 
 ```sh
 generate-lang8-cnn.bat
 ```
+
+This command will try to correct all sentences in a file with probabilities and scores in the output. It is a convenient way to peed that the model behaves as expected against lots of test data.
 
 ### Evaluate the Model
 
@@ -344,6 +346,8 @@ Below script will boot a local server to provide a web GUI and RESTful API inter
 ```sh
 interactive-lang8-cnn-web.bat
 ```
+
+Interactive mode allows users to enter a sentence in console, or Web GUI, to see how subtle difference in input are corrected.
 
 ### Boosting
 
@@ -417,7 +421,7 @@ Note that this script may need to be adjusted based on the GPU and memory resour
 
 ### Testing the Model
 
-To test the model, run the following command to try to correct a test list of sentences:
+To test the model, run the following command to try to correct a list of sentences:
 
 ```sh
 translate.bat
