@@ -14,7 +14,7 @@ This project was completed as the final project for CS 410: Text Information Sys
 * Jingwei Li: BPE tokenization, research alignment dictionary generation.
 * Jonathan Montwell: research datasets, right-to-left data generation, technology review.
 
-A [video presentation](https://www.youtube.com/watch?v=n_BHr5RyVdA) is available online and the [slides](Project-Presentation.pdf) are included in this repository.
+A [video presentation](https://www.youtube.com/watch?v=n_BHr5RyVdA) is available online and the [slides](doc/Project-Presentation.pdf) are included in this repository. The project [Technology Review](doc/Technology-Review.pdf) is also available.
 
 ## What We Learned
 
@@ -253,7 +253,6 @@ pip install -r requirements.txt
 ```
 .
 |-- OpenNMT-py                  The other NLP toolkit we tried early (legacy)
-|-- BPEtokenization-scripts     Workbook demonstrating the use of BPE tokenization
 |-- checkpoints                 Trained models and checkpoints
 |   |-- errorgen-fairseq-cnn        An error generation model that takes corrected sentences as input,
                                     uncorrected sentences as output
@@ -268,6 +267,7 @@ pip install -r requirements.txt
 |   |-- errorgen-fairseq            Binarized synthetic data and dictionaries
 |   |-- lang-8-fairseq              Binarized Lang-8 data and dictionaries
 |   `-- wiki103                     Pre-trained WikiText-103 language model and dictionaries
+|-- doc                         Additional project research and documentation
 |-- fairseq                     fairseq submodule
 |-- fairseq-scripts             fairseq scripts used to implement the model and process proposed by the paper
 |-- opennmt                     OpenNMT data and model folder (legacy)
@@ -395,7 +395,7 @@ The sentences generated in the corpus\errorgen directory can then be used as add
 
 In addition to the work describe above, additional datasets and techniques for data preprocessing, model training, and other imporovements were evaluated.
 
-BPE tokenization promises to make more effective use of a limited number of vocabulary tokens by further subdividing words into subword tokens that can be shared by many different words. A Jupyter [notebook](BPEtokenization-scripts/SubwordNMT.ipynb) showing how to install and tokenize the dataset is available in the [BPEtokenization-scripts](BPEtokenization-scripts/) directory.
+BPE tokenization promises to make more effective use of a limited number of vocabulary tokens by further subdividing words into subword tokens that can be shared by many different words. Additional [documentation](doc/BPE-Documentation) and [notebook](doc/BPE-Notebook.ipynb) showing how to install and tokenize the dataset is available.
 
 An example of sentences after apply BPE tokenization can be seen below:
 ```
@@ -415,8 +415,11 @@ If error `UnicodeDecodeError: 'charmap' codec can't decode byte` error occurs, m
 
 When trying built-in example from `fairseq/examples/translation/prepare-[dataset].sh`, scripts may need to change .py path from `$BPEROOT/[script].py` to `$BPEROOT/subword_nmt/[script].py`.
 
+## OpenNMT (Legacy)
 
-## OpenNMT Scripts (Legacy)
+Initial exploration and implentation of this project used the OpenNMT library. Documentation of how to use this library is included below. An [Framework Comparison](doc/Framework-Comparison.pdf) comparing the two frameworks and why we settled on Fairseq is available.
+
+### OpenNMT Scripts
 
 All OpenNMT scripts have been grouped under `opennmt-scripts` folder.
 
