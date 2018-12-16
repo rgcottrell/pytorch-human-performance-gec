@@ -14,7 +14,7 @@ This project was completed as the final project for CS 410: Text Information Sys
 * Jingwei Li: BPE tokenization, research alignment dictionary generation.
 * Jonathan Montwell: research datasets, right-to-left data generation, technology review.
 
-A [video presentation](https://www.youtube.com/watch?v=n_BHr5RyVdA) is available online and the (slides)[Project-Presentation.pdf] are included in this repository.
+A [video presentation](https://www.youtube.com/watch?v=n_BHr5RyVdA) is available online and the [slides])(Project-Presentation.pdf) are included in this repository.
 
 ## What We Learned
 
@@ -403,7 +403,6 @@ I will introduce my dog , Ti@@ ara .
 She is a cheerful and plu@@ mp pretty dog , perhaps she is the cu@@ test dog in the world .
 She 's an 8 year old golden re@@ tri@@ ever
 Her fu@@ r is a beautiful a@@ mber colour and is soft .
-She is a little stupid , but has per@@ cep@@ tive insi@@ ghts about food because she is always fami@@ shed ^ ^ She loves food !
 When she has had her food , she always pr@@ ances around the living room mer@@ ri@@ ly .
 And she loves ba@@ s@@ king too .
 ```
