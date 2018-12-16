@@ -14,7 +14,7 @@ This project was completed as the final project for CS 410: Text Information Sys
 * Jingwei Li: BPE tokenization, research alignment dictionary generation.
 * Jonathan Montwell: research datasets, right-to-left data generation, technology review.
 
-A [video presentation](https://www.youtube.com/watch?v=n_BHr5RyVdA) is available online and the [slides])(Project-Presentation.pdf) are included in this repository.
+A [video presentation](https://www.youtube.com/watch?v=n_BHr5RyVdA) is available online and the [slides](Project-Presentation.pdf) are included in this repository.
 
 ## What We Learned
 
