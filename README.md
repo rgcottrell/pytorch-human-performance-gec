@@ -241,6 +241,20 @@ pip install -r requirements.txt
 python setup.py build develop
 ```
 
+Some preprocessing scripts also make use of the NLTK framework, which can be installed with this command:
+
+```sh
+pip install nltk
+```
+
+Once the NLTK framework is installed, the `punkt` dataset must also be downloaded. This can be done from the Python REPL:
+
+```sh
+python
+>>> import nltk
+>>> nltk.download('punkt')
+```
+
 Other project dependencies are placed under `fairseq-scripts` folder, which can be installed by running
 
 ```sh
@@ -296,12 +310,14 @@ To split the Lang-8 learner data training set, use the following command:
 ```sh
 python transform-lang8.py -src_dir <dataset-src> -out_dir <corpus-dir>
 ```
-e.g.
+
+To split the CLC-FCE data set training set, use the following command:
+
 ```sh
-python transform-lang8.py -src_dir ../corpus/lang-8-en-1.0 -out_dir ../corpus/lang-8-fairseq
+python transform-CLC_FCE.py -src_dir <dataset-src> -out_dir <corpus-dir>
 ```
 
-This will create training, validation, and test sets for both the left-to-right and right-to-left models.
+These scripts will create training, validation, and test sets for both the left-to-right and right-to-left models.
 
 ### Pre-process Data
 
