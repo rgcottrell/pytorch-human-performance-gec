@@ -237,14 +237,14 @@ This project also uses the `fairseq` NLP toolkit, which is included as a submodu
 
 ```sh
 cd fairseq
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 python setup.py build develop
 ```
 
 Some preprocessing scripts also make use of the NLTK framework, which can be installed with this command:
 
 ```sh
-pip install nltk
+pip3 install nltk
 ```
 
 Once the NLTK framework is installed, the `punkt` dataset must also be downloaded. This can be done from the Python REPL:
@@ -259,7 +259,7 @@ Other project dependencies are placed under `fairseq-scripts` folder, which can 
 
 ```sh
 cd fairseq-scripts
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Folder Structures
@@ -497,7 +497,7 @@ def __reduce_ex__(self, proto):
     return super(DatasetBase, self).__reduce_ex__(proto)
 ```
 
-If `TypeError: __init__() got an unexpected keyword argument 'dtype'` occurs, `pytorch/text` installed by pip may be out of date. Update it using `pip install git+https://github.com/pytorch/text`
+If `TypeError: __init__() got an unexpected keyword argument 'dtype'` occurs, `pytorch/text` installed by pip may be out of date. Update it using `pip3 install git+https://github.com/pytorch/text`
 
 If `RuntimeError: CuDNN error: CUDNN_STATUS_SUCCESS` occurs during training, try install pytorch with CUDA 9.2 using conda instead of using default CUDA 9.0.
 
