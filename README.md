@@ -255,7 +255,7 @@ pip install -r requirements.txt
 |-- OpenNMT-py                  The other NLP toolkit we tried early (legacy)
 |-- checkpoints                 Trained models and checkpoints
 |   |-- errorgen-fairseq-cnn        An error generation model that takes corrected sentences as input,
-                                    uncorrected sentences as output
+|   |                               uncorrected sentences as output
 |   |-- lang-8-fairseq              A simple single layer LSTM model for error correction
 |   `-- lang-8-fairseq-cnn          A 7-layer convolutional seq2seq model for error correction
 |-- corpus                      Raw and prepared corpus
@@ -300,6 +300,8 @@ e.g.
 ```sh
 python transform-lang8.py -src_dir ../corpus/lang-8-en-1.0 -out_dir ../corpus/lang-8-fairseq
 ```
+
+This will create training, validation, and test sets for both the left-to-right and right-to-left models.
 
 ### Pre-process Data
 
